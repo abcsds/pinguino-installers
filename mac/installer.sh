@@ -1,72 +1,116 @@
 #!/bin/bash
-# Check if xcode is installed
-if [ `xcode-select -p` = "/Applications/Xcode.app/Contents/Developer" ] ; then
-    echo "Xcode Installed..."
-else
-    echo "ERROR: No Xcode Instalation found.
-Please install Xcode and continue with this script"
-    exit -1
-fi
+# Check for git and devtools
 
-# Check for git
-if [ `git --version` = "-bash: git: command not found" ] ; then
-    echo "Installing developer tools..."
-    xcode-select --install
-else
-    echo "Git installed..."
-fi
+set -e
 
-# Check if homebrew is installed
-if [ `brew --version` = "-bash: brew: command not found" ] ; then
-    echo "Installing homebrew tools..."
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-else
-    echo "Homebrew installed: updating"
-    brew update
-fi
+echo ''
 
-# Check for brew doctor messages
-if [ `brew doctor` = "Your system is ready to brew." ] ; then
-    echo "Homebrew is up and ready... "
-else
-    echo "Homebrew seems to be sick run brew doctor and fix your problems, then come back."
-    exit 2
-fi
+info () {
+  printf "  [ \033[00;34m..\033[0m ] $1"
+}
 
-# Install python, python QT libraries and compiler
-brew install python
-brew install pyside sdcc
+user () {
+  printf "\r  [ \033[0;33m?\033[0m ] $1 "
+}
 
-# Install python packages
-pip install gitpython hgapi beautifulsoup4 pyusb
+success () {
+  printf "\r\033[2K  [ \033[00;32mOK\033[0m ] $1\n"
+}
 
-# Create pinguino directory in home folder
-[ ! -d ~/.pinguino ] && mkdir -pv ~/.pinguino
-[ ! -d /usr/share/pinguino-11 ] && sudo mkdir -pv /usr/share/pinguino-11
+fail () {
+  printf "\r\033[2K  [\033[0;31mFAIL\033[0m] $1\n"
+  echo ''
+  exit
+}
 
-# Go to Pinguino folder
-cd ~/.pinguino
+git_setup () {
+    # Check for git and devtools
+    if [ `git --version` = "-bash: git: command not found" ] ; then
+        info "Installing developer tools...\n"
+        xcode-select --install
+    fi
+    success "Git installed"
+}
 
-# Get the basic pinguino IDE
-git clone https://github.com/PinguinoIDE/pinguino-ide.git ~/.pinguino
+homebrew_setup () {
+    # Check if homebrew is installed
+    if [ `brew --version` = "-bash: brew: command not found" ] ; then
+        info "Installing homebrew tools...\n"
+        ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    else
+        info "Homebrew installed: updating\n"
+        brew update
+        success "Homebrew updated"
+    fi
+    success "Homebrew up and running"
+}
 
-# Get the libraries
-wget --no-check-certificate https://github.com/PinguinoIDE/pinguino-libraries/archive/master.zip
-unzip master.zip -d ~/.pinguino
-rm master.zip
+homebrew_verification () {
+    # Check for brew doctor messages
+    if [ `brew doctor` = "Your system is ready to brew." ] ; then
+        success "Homebrew is up and ready... "
+    else
+        fail "Homebrew seems to be sick run brew doctor and fix your problems, then come back."
+        exit 2
+    fi
+}
 
-# Copy the libraries to pinguino main folder
-cp -a ~/.pinguino/pinguino-libraries-master/p* ~/.pinguino
+python_install () {
+    # Install python, python QT libraries and compiler
+    info "Installing python and libraries... \n"
+    brew install python wget
+    brew install pyside sdcc
+}
 
-# Link the binaries to /usr folder
-sudo cp -aR p8 /usr/share/pinguino-11/
-sudo ln -sfv /usr/local/bin/sdcc /usr/bin/sdcc
-# Check if alias exits in ~/.bash_profile
-if grep -q "alias pinguino" ~/.bash_profile|wc -l
-then
-    echo "Instalation successful, you can run pinguino-IDE with command 'pinguino'."
-else
-    echo "alias pinguino='python ~/.pinguino/pinguino.py'" >> ~/.bash_profile
-    source ~/.bash_profile
-    echo "Instalation successful, you can run pinguino-IDE with command 'pinguino'."
-fi
+pip_install () {
+    # Install python packages
+    pip install gitpython hgapi beautifulsoup4 pyusb
+    success "Python and libraries installed correctly"
+}
+
+directories_setup () {
+    info "Setting up directories.\n"
+    # Create pinguino directory in home folder
+    [ ! -d ~/.pinguino ] && mkdir -pv ~/.pinguino
+    [ ! -d /usr/local/share/pinguino-11 ] && mkdir -pv /usr/local/share/pinguino-11
+    # Go to Pinguino folder
+    cd ~/.pinguino
+    PINGUINO_ROOT=$(pwd)
+
+    # Get the basic pinguino IDE
+    info "Downloading PinguinoIDE; this might take a while.\n"
+    git clone https://github.com/PinguinoIDE/pinguino-ide.git $PINGUINO_ROOT
+
+    # Get the libraries
+    info "Downloading libraries.\n"
+    wget --no-check-certificate https://github.com/PinguinoIDE/pinguino-libraries/archive/master.zip
+    unzip master.zip -d $PINGUINO_ROOT
+    rm "$PINGUINO_ROOT/master.zip"
+
+    # Copy the libraries to pinguino main folder
+    cp -a ~/.pinguino/pinguino-libraries-master/* ~/.pinguino
+
+    # Set paths in pinguinoIDE to the project
+    # TODO
+}
+
+global_setup () {
+    # Check if alias exits in ~/.bash_profile
+    info "Setting up global alias (bash)"
+    if grep -q "alias pinguino" ~/.bash_profile|wc -l
+    then
+        success "Global settup succesfull, you can run pinguino-IDE with command 'pinguino'."
+    else
+        echo "alias pinguino='python ~/.pinguino/pinguino.py'" >> ~/.bash_profile
+        source ~/.bash_profile
+        success "Global settup succesfull, you can run pinguino-IDE with command 'pinguino'."
+    fi
+}
+
+git_setup
+homebrew_setup
+homebrew_verification
+python_install
+pip_install
+directories_setup
+global_setup
