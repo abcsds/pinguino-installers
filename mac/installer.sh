@@ -91,7 +91,13 @@ directories_setup () {
     cp -a ~/.pinguino/pinguino-libraries-master/* ~/.pinguino
 
     # Set paths in pinguinoIDE to the project
-    # TODO
+    # TODO:
+    # in paths.cfg change /usr/share/pinguino-11 to /usr/local/share/pinguino-11
+    # there is another file, but it doesn't seem to be in the IDE repo
+    # info 'Setting up paths.\n'
+    # USR_PATH="/usr/local/share/pinguino-11"
+    # sed -e "s/AUTHORNAME/$git_authorname/g" -e "s/AUTHORUSERNAME/$git_authorusername/g" -e "s/AUTHOREMAIL/$git_authoremail/g" -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" git/gitconfig.symlink.example > git/gitconfig.symlink
+
 }
 
 global_setup () {
